@@ -1,0 +1,64 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: ensure SSH exists
+      digital_ocean:
+        state: present
+        command: ssh
+        name: my_ssh_key
+        ssh_pub_key: "{{lookup('file', '~/.ssh/id_rsa.pub')}}"
+      register: my_ssh_key
+
+
+    - name: create two droplets
+      digital_ocean:
+
+        unique_name: yes
+        region_id: fra1
+        image_id: ubuntu-16-04-x64
+        wait_timeout: 100
+        name: "{{ item }}"
+        size_id: s-1vcpu-1gb
+        state: present
+        ssh_key_ids: ["{{my_ssh_key.ssh_key.id}}"] # <---- put your numeric ssh key in here
+      register: created_droplets
+      with_items:
+        - tmp-droplet-1
+        - tmp-droplet-2
+    - debug:
+        msg: "IP is {{item.droplet.ip_address}}"
+      with_items: "{{ created_droplets.results }}"
+
+    - name: add to dynamic inventory
+      add_host:
+        name: "{{ item.droplet.ip_address }}"
+        group: droplets
+      with_items: "{{ created_droplets.results }}"
+
+- hosts: droplets
+  remote_user: root
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+
+  tasks:
+    - name: Install required dependencies
+      apt:
+        name: [docker, docker-compose, git]
+        update_cache: yes
+    - name: Include vars from file
+      include_vars:
+        file: vars.yaml
+        name: credential
+    - name: Pull the latest scrapper-slave
+      git:
+        repo: "https://{{ credential.login | urlencode }}:{{ credential.access_token }}@github.com/lukBaszak/scrapper-slave.git"
+        dest: /tmp/scrapper_slave/
+        update: yes
+
+
+
+
