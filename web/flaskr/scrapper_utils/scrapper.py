@@ -1,3 +1,4 @@
+import re
 import sys
 
 import redis
@@ -33,7 +34,8 @@ class ScrapperService:
                 fastrack = WebDriverWait(self.chrome, 10).until(ec.visibility_of_element_located((By.XPATH, '//ul[@id="gallerywide"]')))
 
                 products = self.chrome.find_elements_by_xpath('//ul[@id="gallerywide"]/li/div[@class="mheight tcenter"]/a')
-                urls = [url.get_attribute('href') for url in products]
+                urls = [(re.search('oferta/(.*).html#', url.get_attribute('href')).group(1)) for url in products]
+
                 self.db.lpush('links', *urls)
 
                 page_index = page_index + 1
