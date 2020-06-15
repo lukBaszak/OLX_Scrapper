@@ -31,8 +31,7 @@ class ScrapperService:
             try:
                 self.chrome.get(
                     f"https://www.olx.pl/dom-ogrod/?view=galleryWide&page={page_index}&search[filter_enum_state][0]=new")
-                fastrack = WebDriverWait(self.chrome, 10).until(ec.visibility_of_element_located((By.XPATH, '//ul[@id="gallerywide"]')))
-
+                WebDriverWait(self.chrome, 10).until(ec.visibility_of_element_located((By.XPATH, '//ul[@id="gallerywide"]')))
                 products = self.chrome.find_elements_by_xpath('//ul[@id="gallerywide"]/li/div[@class="mheight tcenter"]/a')
                 urls = [(re.search('oferta/(.*).html#', url.get_attribute('href')).group(1)) for url in products]
 
